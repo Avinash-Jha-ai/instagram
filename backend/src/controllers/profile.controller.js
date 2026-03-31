@@ -6,13 +6,11 @@ import {uploadToCloudinary} from "../utils/uploadToCloudinary.js"
 export async function updateProfile(req, res) {
   try {
     const file = req.file;
-
-    if (!file) {
-      return res.status(400).json({ message: "No file uploaded" });
+    let imageUrl;
+    if (file) {
+      const result = await uploadToCloudinary(file.path);
+      imageUrl = result.secure_url;
     }
-
-    const result = await uploadToCloudinary(file.path);
-    const imageUrl = result.secure_url;
 
     const { bio, name } = req.body; // ✅ include name
 

@@ -59,12 +59,18 @@ export function AuthProvider({ children }) {
   }
 
   async function updateProfile(formData) {
-    const res = await api.post('/profile/update', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    setProfile(res.data.profile);
-    toast.success('Profile updated! ✨');
-    return res.data;
+    try {
+      const res = await api.post('/profile/update', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setProfile(res.data.profile);
+      toast.success('Profile updated! ✨');
+      return res.data;
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to update profile';
+      toast.error(message);
+      throw err;
+    }
   }
 
   async function fetchProfile() {
