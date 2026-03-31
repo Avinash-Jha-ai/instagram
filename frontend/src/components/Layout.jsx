@@ -1,0 +1,199 @@
+import React from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { FiHome, FiFilm, FiPlusSquare, FiUser, FiLogOut } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
+
+const Layout = () => {
+  const { logout, profile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
+  };
+
+  const navItems = [
+    { name: 'Home', path: '/', icon: <FiHome size={24} /> },
+    { name: 'Reels', path: '/reels', icon: <FiFilm size={24} /> },
+    { name: 'Create', path: '/create', icon: <FiPlusSquare size={24} /> },
+    { name: 'Profile', path: '/profile', icon: <FiUser size={24} /> },
+  ];
+
+  return (
+    <div style={styles.container}>
+      {/* Desktop Sidebar */}
+      <nav className="glass-panel" style={styles.sidebar}>
+        <div style={styles.logo}>
+          <span style={styles.logoText}>Instagram</span>
+        </div>
+
+        <ul style={styles.navLinks}>
+          {navItems.map((item) => (
+            <li key={item.name}>
+              <NavLink
+                to={item.path}
+                style={({ isActive }) => ({
+                  ...styles.navItem,
+                  ...(isActive ? styles.navItemActive : {}),
+                })}
+              >
+                {item.icon}
+                <span style={styles.navText}>{item.name}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+
+        <div style={styles.userSection}>
+          <button style={styles.logoutBtn} onClick={handleLogout}>
+            <FiLogOut size={24} />
+            <span style={styles.navText}>Logout</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main style={styles.mainContent}>
+        <Outlet />
+      </main>
+
+      {/* Mobile Bottom Bar */}
+      <nav className="glass-panel" style={styles.bottomBar}>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.path}
+            style={({ isActive }) => ({
+              ...styles.mobileNavItem,
+              ...(isActive ? { color: 'var(--primary)' } : {}),
+            })}
+          >
+            {item.icon}
+          </NavLink>
+        ))}
+      </nav>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .glass-panel { border-radius: 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+const styles = {
+  container: {
+    display: 'flex',
+    minHeight: '100vh',
+    position: 'relative',
+  },
+  sidebar: {
+    width: '280px',
+    height: '100vh',
+    position: 'fixed',
+    left: 0,
+    top: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '30px 20px',
+    zIndex: 100,
+    borderRight: '1px solid var(--border-color)',
+    borderRadius: '0',
+    '@media (max-width: 768px)': {
+      display: 'none',
+    },
+  },
+  logo: {
+    marginBottom: '50px',
+    padding: '0 15px',
+  },
+  logoText: {
+    fontSize: '2rem',
+    fontWeight: 'bold',
+    background: 'linear-gradient(to right, var(--primary), var(--secondary))',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    fontFamily: '"Outfit", sans-serif',
+  },
+  navLinks: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    padding: '12px 15px',
+    borderRadius: '12px',
+    color: 'var(--text-main)',
+    transition: 'all 0.3s ease',
+  },
+  navItemActive: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    color: 'var(--primary)',
+    boxShadow: 'inset 4px 0 0 var(--primary)',
+  },
+  navText: {
+    fontSize: '1.1rem',
+    fontWeight: '500',
+  },
+  userSection: {
+    marginTop: 'auto',
+  },
+  logoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    width: '100%',
+    padding: '12px 15px',
+    background: 'transparent',
+    border: 'none',
+    color: '#ff4444',
+    cursor: 'pointer',
+    borderRadius: '12px',
+    transition: 'background 0.3s',
+  },
+  mainContent: {
+    flex: 1,
+    marginLeft: '280px', // Math sidebar width
+    padding: '40px',
+    paddingBottom: '100px', // Space for mobile nav
+    minHeight: '100vh',
+  },
+  bottomBar: {
+    display: 'none',
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    height: '70px',
+    padding: '0 20px',
+    borderTop: '1px solid var(--border-color)',
+    zIndex: 100,
+    borderRadius: '0',
+  },
+  mobileNavItem: {
+    color: 'var(--text-muted)',
+    padding: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+};
+
+// CSS injection for media queries
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @media (max-width: 768px) {
+    nav[style*="width: 280px"] { display: none !important; }
+    nav[style*="bottom: 0"] { display: flex !important; justify-content: space-around; align-items: center; }
+    main[style*="marginLeft: 280px"] { margin-left: 0 !important; padding: 20px !important; padding-bottom: 90px !important; }
+  }
+`;
+document.head.appendChild(styleSheet);
+
+export default Layout;
