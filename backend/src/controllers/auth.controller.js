@@ -2,15 +2,6 @@ import userModel from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 
-function getCookieOptions() {
-    const isProd = process.env.NODE_ENV === "production";
-    return {
-        httpOnly: true,
-        sameSite: isProd ? "none" : "lax",
-        secure: isProd,
-        maxAge: 3 * 24 * 60 * 60 * 1000, // 3d
-    };
-}
 
 export async function register(req,res){
     const {username,password} =req.body;
@@ -37,7 +28,7 @@ export async function register(req,res){
         expiresIn:"3d",
     });
 
-    res.cookie("token",token, getCookieOptions());
+    res.cookie("token",token);
 
     return res.status(200).json({
         message:"user registered successfully",
@@ -76,7 +67,7 @@ export async function login(req,res){
         expiresIn:"3d",
     })
 
-    res.cookie("token",token, getCookieOptions());
+    res.cookie("token",token);
 
     return res.status(200).json({
         message:"user login successfully",
@@ -106,12 +97,7 @@ export async function getMe(req,res){
 }
 
 export async function logout(req,res){
-    const isProd = process.env.NODE_ENV === "production";
-    res.clearCookie("token", {
-        httpOnly: true,
-        sameSite: isProd ? "none" : "lax",
-        secure: isProd,
-    });
+    res.clearCookie("token");
 
     return res.status(200).json({
         message:"user logout successfully",
