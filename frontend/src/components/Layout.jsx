@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { FiHome, FiFilm, FiPlusSquare, FiUser, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,13 @@ import { motion } from 'framer-motion';
 const Layout = () => {
   const { logout, profile } = useAuth();
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -23,6 +30,7 @@ const Layout = () => {
   return (
     <div style={styles.container}>
       {/* Desktop Sidebar */}
+      {!isMobile && (
       <nav className="glass-panel" style={styles.sidebar}>
         <div style={styles.logo}>
           <span style={styles.logoText}>Instagram</span>
@@ -52,13 +60,15 @@ const Layout = () => {
           </button>
         </div>
       </nav>
+      )}
 
       {/* Main Content Area */}
-      <main style={styles.mainContent}>
+      <main style={{ ...styles.mainContent, ...(isMobile ? styles.mainContentMobile : {}) }}>
         <Outlet />
       </main>
 
       {/* Mobile Bottom Bar */}
+      {isMobile && (
       <nav className="glass-panel" style={styles.bottomBar}>
         {navItems.map((item) => (
           <NavLink
@@ -73,12 +83,7 @@ const Layout = () => {
           </NavLink>
         ))}
       </nav>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .glass-panel { border-radius: 0; }
-        }
-      `}</style>
+      )}
     </div>
   );
 };
@@ -101,9 +106,6 @@ const styles = {
     zIndex: 100,
     borderRight: '1px solid var(--border-color)',
     borderRadius: '0',
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
   },
   logo: {
     marginBottom: '50px',
@@ -159,13 +161,18 @@ const styles = {
   },
   mainContent: {
     flex: 1,
-    marginLeft: '280px', // Math sidebar width
+    marginLeft: '280px',
     padding: '40px',
-    paddingBottom: '100px', // Space for mobile nav
+    paddingBottom: '40px',
     minHeight: '100vh',
   },
+  mainContentMobile: {
+    marginLeft: 0,
+    padding: '16px',
+    paddingBottom: '92px',
+  },
   bottomBar: {
-    display: 'none',
+    display: 'flex',
     position: 'fixed',
     bottom: 0,
     left: 0,
@@ -184,16 +191,5 @@ const styles = {
     justifyContent: 'center',
   },
 };
-
-// CSS injection for media queries
-const styleSheet = document.createElement("style");
-styleSheet.innerText = `
-  @media (max-width: 768px) {
-    nav[style*="width: 280px"] { display: none !important; }
-    nav[style*="bottom: 0"] { display: flex !important; justify-content: space-around; align-items: center; }
-    main[style*="marginLeft: 280px"] { margin-left: 0 !important; padding: 20px !important; padding-bottom: 90px !important; }
-  }
-`;
-document.head.appendChild(styleSheet);
 
 export default Layout;

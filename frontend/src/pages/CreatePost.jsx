@@ -11,7 +11,14 @@ const CreatePost = () => {
   const [preview, setPreview] = useState(null);
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -79,14 +86,14 @@ const CreatePost = () => {
 
   return (
     <motion.div
-      style={styles.container}
+      style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}
       initial="initial"
       animate="in"
       exit="out"
       variants={pageVariants}
       transition={{ duration: 0.4 }}
     >
-      <div className="glass-panel" style={styles.card}>
+      <div className="glass-panel" style={{ ...styles.card, ...(isMobile ? styles.cardMobile : {}) }}>
         <h1 style={styles.title}>Create New</h1>
 
         <div style={styles.tabs}>
@@ -106,7 +113,7 @@ const CreatePost = () => {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div
-            style={styles.uploadArea}
+            style={{ ...styles.uploadArea, ...(isMobile ? styles.uploadAreaMobile : {}) }}
             onClick={() => document.getElementById('fileInput').click()}
           >
             {preview ? (
@@ -168,12 +175,20 @@ const styles = {
     alignItems: 'center',
     minHeight: '80vh',
   },
+  containerMobile: {
+    minHeight: 'auto',
+    padding: '10px 0',
+  },
   card: {
     width: '100%',
     padding: '30px',
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+  },
+  cardMobile: {
+    padding: '18px',
+    borderRadius: '14px',
   },
   title: {
     fontSize: '2rem',
@@ -226,6 +241,9 @@ const styles = {
     position: 'relative',
     background: 'rgba(0, 0, 0, 0.2)',
     transition: 'all 0.3s ease',
+  },
+  uploadAreaMobile: {
+    height: '240px',
   },
   uploadPlaceholder: {
     display: 'flex',

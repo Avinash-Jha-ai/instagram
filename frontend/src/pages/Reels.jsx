@@ -7,9 +7,16 @@ import toast from 'react-hot-toast';
 const Reels = () => {
   const [reels, setReels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     fetchReels();
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const fetchReels = async () => {
@@ -31,14 +38,14 @@ const Reels = () => {
 
   return (
     <motion.div
-      style={styles.container}
+      style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}
       initial="initial"
       animate="in"
       exit="out"
       variants={pageVariants}
       transition={{ duration: 0.5 }}
     >
-      <div style={styles.reelsWrapper}>
+      <div style={{ ...styles.reelsWrapper, ...(isMobile ? styles.reelsWrapperMobile : {}) }}>
         {loading ? (
           <div style={styles.loader}>
             <div style={styles.spinner}></div>
@@ -168,6 +175,10 @@ const styles = {
     overflow: 'hidden', // Hide main layout scrollbar
     paddingBottom: '20px',
   },
+  containerMobile: {
+    height: 'calc(100vh - 96px)',
+    paddingBottom: '0',
+  },
   reelsWrapper: {
     width: '100%',
     maxWidth: '400px',
@@ -177,6 +188,10 @@ const styles = {
     borderRadius: '20px',
     scrollbarWidth: 'none', // Firefox
     msOverflowStyle: 'none', // IE/Edge
+  },
+  reelsWrapperMobile: {
+    maxWidth: '100%',
+    borderRadius: '14px',
   },
   reelContainer: {
     width: '100%',

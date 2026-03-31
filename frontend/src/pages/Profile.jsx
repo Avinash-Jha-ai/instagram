@@ -14,6 +14,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('posts');
   const [userPosts, setUserPosts] = useState([]);
   const [userReels, setUserReels] = useState([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -27,6 +28,12 @@ const Profile = () => {
     fetchUserPosts();
     fetchUserReels();
   }, [user?.id]);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const getOwnerId = (item) => {
     if (!item?.user) return null;
@@ -118,15 +125,15 @@ const Profile = () => {
 
   return (
     <motion.div
-      style={styles.container}
+      style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}
       initial="initial"
       animate="in"
       variants={pageVariants}
       transition={{ duration: 0.5 }}
     >
       {/* Profile Header Block */}
-      <div className="glass-panel" style={styles.headerBlock}>
-        <div style={styles.topSection}>
+      <div className="glass-panel" style={{ ...styles.headerBlock, ...(isMobile ? styles.headerBlockMobile : {}) }}>
+        <div style={{ ...styles.topSection, ...(isMobile ? styles.topSectionMobile : {}) }}>
           <div style={styles.avatarContainer}>
             <div style={styles.avatarRing}>
               <img src={displayAvatar} alt="Profile" style={styles.avatar} />
@@ -139,9 +146,9 @@ const Profile = () => {
             )}
           </div>
 
-          <div style={styles.infoContainer}>
-            <div style={styles.nameHeader}>
-              <h1 style={styles.username}>{user?.username}</h1>
+          <div style={{ ...styles.infoContainer, ...(isMobile ? styles.infoContainerMobile : {}) }}>
+            <div style={{ ...styles.nameHeader, ...(isMobile ? styles.nameHeaderMobile : {}) }}>
+              <h1 style={{ ...styles.username, ...(isMobile ? styles.usernameMobile : {}) }}>{user?.username}</h1>
               {!isEditing ? (
                 <button className="btn-outline" style={styles.editBtn} onClick={() => setIsEditing(true)}>
                   Edit Profile
@@ -154,7 +161,7 @@ const Profile = () => {
               )}
             </div>
 
-            <div style={styles.stats}>
+            <div style={{ ...styles.stats, ...(isMobile ? styles.statsMobile : {}) }}>
               <div style={styles.statItem}><strong>{userPosts.length}</strong> posts</div>
               <div style={styles.statItem}><strong>1.2K</strong> followers</div>
               <div style={styles.statItem}><strong>845</strong> following</div>
@@ -191,29 +198,29 @@ const Profile = () => {
       </div>
 
       {/* Tabs */}
-      <div style={styles.tabsContainer}>
+      <div style={{ ...styles.tabsContainer, ...(isMobile ? styles.tabsContainerMobile : {}) }}>
         <button
           style={{ ...styles.tab, ...(activeTab === 'posts' ? styles.activeTab : {}) }}
           onClick={() => setActiveTab('posts')}
         >
-          <FiGrid size={20} /> <span style={styles.tabText}>POSTS</span>
+          <FiGrid size={20} /> <span style={{ ...styles.tabText, ...(isMobile ? styles.tabTextMobile : {}) }}>POSTS</span>
         </button>
         <button
           style={{ ...styles.tab, ...(activeTab === 'reels' ? styles.activeTab : {}) }}
           onClick={() => setActiveTab('reels')}
         >
-          <FiFilm size={20} /> <span style={styles.tabText}>REELS</span>
+          <FiFilm size={20} /> <span style={{ ...styles.tabText, ...(isMobile ? styles.tabTextMobile : {}) }}>REELS</span>
         </button>
         <button
           style={{ ...styles.tab, ...(activeTab === 'saved' ? styles.activeTab : {}) }}
           onClick={() => setActiveTab('saved')}
         >
-          <FiBookmark size={20} /> <span style={styles.tabText}>SAVED</span>
+          <FiBookmark size={20} /> <span style={{ ...styles.tabText, ...(isMobile ? styles.tabTextMobile : {}) }}>SAVED</span>
         </button>
       </div>
 
       {/* Grid Content */}
-      <div style={styles.grid}>
+      <div style={{ ...styles.grid, ...(isMobile ? styles.gridMobile : {}) }}>
         {activeTab === 'posts' && userPosts.length > 0 ? (
            userPosts.map(post => (
             <motion.div key={post._id} style={styles.gridItem} whileHover={{ scale: 1.02 }}>
@@ -265,18 +272,27 @@ const styles = {
     margin: '0 auto',
     padding: '20px 0',
   },
+  containerMobile: {
+    padding: '8px 0',
+  },
   headerBlock: {
     padding: '40px',
     marginBottom: '40px',
+  },
+  headerBlockMobile: {
+    padding: '18px',
+    marginBottom: '20px',
+    borderRadius: '16px',
   },
   topSection: {
     display: 'flex',
     gap: '60px',
     alignItems: 'flex-start',
-    '@media (max-width: 768px)': {
-      flexDirection: 'column',
-      gap: '30px',
-    },
+  },
+  topSectionMobile: {
+    flexDirection: 'column',
+    gap: '20px',
+    alignItems: 'center',
   },
   avatarContainer: {
     position: 'relative',
@@ -318,6 +334,9 @@ const styles = {
   infoContainer: {
     flex: 1,
   },
+  infoContainerMobile: {
+    width: '100%',
+  },
   nameHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -325,9 +344,17 @@ const styles = {
     marginBottom: '20px',
     flexWrap: 'wrap',
   },
+  nameHeaderMobile: {
+    justifyContent: 'center',
+    textAlign: 'center',
+    gap: '12px',
+  },
   username: {
     fontSize: '2rem',
     fontWeight: '300',
+  },
+  usernameMobile: {
+    fontSize: '1.5rem',
   },
   editBtn: {
     padding: '8px 16px',
@@ -346,6 +373,12 @@ const styles = {
     gap: '40px',
     marginBottom: '20px',
     fontSize: '1.1rem',
+  },
+  statsMobile: {
+    gap: '16px',
+    justifyContent: 'space-between',
+    width: '100%',
+    fontSize: '0.95rem',
   },
   statItem: {
     color: 'var(--text-main)',
@@ -375,6 +408,13 @@ const styles = {
     paddingTop: '20px',
     marginBottom: '30px',
   },
+  tabsContainerMobile: {
+    gap: '18px',
+    marginBottom: '20px',
+    overflowX: 'auto',
+    justifyContent: 'flex-start',
+    paddingTop: '14px',
+  },
   tab: {
     display: 'flex',
     alignItems: 'center',
@@ -397,14 +437,18 @@ const styles = {
     paddingTop: '19px',
   },
   tabText: {
-    '@media (max-width: 600px)': {
-      display: 'none',
-    },
+  },
+  tabTextMobile: {
+    fontSize: '0.75rem',
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '10px',
+  },
+  gridMobile: {
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '8px',
   },
   gridItem: {
     aspectRatio: '1 / 1',

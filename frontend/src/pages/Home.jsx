@@ -7,9 +7,16 @@ import toast from 'react-hot-toast';
 const Home = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const fetchPosts = async () => {
@@ -31,15 +38,15 @@ const Home = () => {
 
   return (
     <motion.div
-      style={styles.container}
+      style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}
       initial="initial"
       animate="in"
       exit="out"
       variants={pageVariants}
       transition={{ duration: 0.5 }}
     >
-      <div style={styles.header}>
-        <h1 style={styles.title}>For You</h1>
+      <div style={{ ...styles.header, ...(isMobile ? styles.headerMobile : {}) }}>
+        <h1 style={{ ...styles.title, ...(isMobile ? styles.titleMobile : {}) }}>For You</h1>
       </div>
 
       <div style={styles.feed}>
@@ -70,6 +77,9 @@ const styles = {
     margin: '0 auto',
     width: '100%',
   },
+  containerMobile: {
+    maxWidth: '100%',
+  },
   header: {
     padding: '20px 0',
     marginBottom: '20px',
@@ -80,9 +90,16 @@ const styles = {
     backdropFilter: 'blur(10px)',
     zIndex: 10,
   },
+  headerMobile: {
+    padding: '12px 0',
+    marginBottom: '14px',
+  },
   title: {
     fontSize: '1.8rem',
     fontWeight: 'bold',
+  },
+  titleMobile: {
+    fontSize: '1.35rem',
   },
   feed: {
     display: 'flex',

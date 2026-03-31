@@ -8,8 +8,15 @@ const Auth = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,10 +49,10 @@ const Auth = () => {
   };
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, ...(isMobile ? styles.containerMobile : {}) }}>
       <motion.div
         className="glass-panel"
-        style={styles.card}
+        style={{ ...styles.card, ...(isMobile ? styles.cardMobile : {}) }}
         initial="initial"
         animate="in"
         exit="out"
@@ -57,7 +64,7 @@ const Auth = () => {
           <h1 style={styles.title}>Instagram</h1>
         </div>
 
-        <h2 style={styles.subtitle}>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+        <h2 style={{ ...styles.subtitle, ...(isMobile ? styles.subtitleMobile : {}) }}>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
 
         {error && <div style={styles.error}>{error}</div>}
 
@@ -116,6 +123,10 @@ const styles = {
     alignItems: 'center',
     padding: '20px',
   },
+  containerMobile: {
+    alignItems: 'flex-start',
+    paddingTop: '40px',
+  },
   card: {
     width: '100%',
     maxWidth: '400px',
@@ -125,6 +136,9 @@ const styles = {
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
+  },
+  cardMobile: {
+    padding: '26px 18px',
   },
   logoContainer: {
     position: 'relative',
@@ -155,6 +169,10 @@ const styles = {
     fontSize: '1.2rem',
     color: 'var(--text-muted)',
     marginBottom: '30px',
+  },
+  subtitleMobile: {
+    fontSize: '1rem',
+    marginBottom: '20px',
   },
   form: {
     width: '100%',
