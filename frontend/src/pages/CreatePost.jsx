@@ -72,7 +72,11 @@ const CreatePost = () => {
         navigate('/reels');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to upload', { id });
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to upload';
+      toast.error(message, { id });
     } finally {
       setLoading(false);
     }
