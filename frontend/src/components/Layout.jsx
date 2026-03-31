@@ -169,7 +169,7 @@ const styles = {
   mainContentMobile: {
     marginLeft: 0,
     padding: '16px',
-    paddingBottom: '92px',
+    paddingBottom: 'calc(92px + env(safe-area-inset-bottom))',
   },
   bottomBar: {
     display: 'flex',
@@ -177,18 +177,25 @@ const styles = {
     bottom: 0,
     left: 0,
     width: '100%',
-    height: '70px',
-    padding: '0 20px',
+    height: '72px',
+    padding: '0 8px env(safe-area-inset-bottom)',
     borderTop: '1px solid var(--border-color)',
     zIndex: 100,
     borderRadius: '0',
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    background: 'rgba(20, 20, 25, 0.95)',
+    backdropFilter: 'blur(14px)',
   },
   mobileNavItem: {
     color: 'var(--text-muted)',
-    padding: '10px',
+    flex: 1,
+    height: '100%',
+    padding: '10px 0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: '10px',
   },
 };
 
