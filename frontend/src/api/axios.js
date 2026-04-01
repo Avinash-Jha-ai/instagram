@@ -1,8 +1,17 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://instagram-1-n0zo.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://instagram-1-n0zo.onrender.com/api',
   withCredentials: true,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default api;

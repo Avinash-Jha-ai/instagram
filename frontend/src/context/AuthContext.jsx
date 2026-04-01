@@ -33,6 +33,9 @@ export function AuthProvider({ children }) {
 
   async function login(username, password) {
     const res = await api.post('/auth/login', { username, password });
+    if (res.data.token) {
+      localStorage.setItem('authToken', res.data.token);
+    }
     setUser(res.data.user);
     toast.success('Welcome back! 🎉');
     try {
@@ -46,6 +49,9 @@ export function AuthProvider({ children }) {
 
   async function register(username, password) {
     const res = await api.post('/auth/register', { username, password });
+    if (res.data.token) {
+      localStorage.setItem('authToken', res.data.token);
+    }
     setUser(res.data.user);
     toast.success('Account created! 🚀');
     return res.data;
@@ -53,6 +59,7 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     await api.get('/auth/logout');
+    localStorage.removeItem('authToken');
     setUser(null);
     setProfile(null);
     toast.success('Logged out');

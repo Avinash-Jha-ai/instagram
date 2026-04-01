@@ -2,6 +2,15 @@ import userModel from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 
+function cookieOptions() {
+    const isProd = process.env.NODE_ENV === "production";
+    return {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+    };
+}
 
 export async function register(req,res){
     const {username,password} =req.body;
@@ -28,15 +37,11 @@ export async function register(req,res){
         expiresIn:"3d",
     });
 
-    res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 3 * 24 * 60 * 60 * 1000
-    });
+    res.cookie("token", token, cookieOptions());
 
     return res.status(200).json({
         message:"user registered successfully",
+        token,
         user :{
             id:user._id,
             username :user.username,
@@ -72,15 +77,11 @@ export async function login(req,res){
         expiresIn:"3d",
     })
 
-    res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 3 * 24 * 60 * 60 * 1000
-    });
+    res.cookie("token", token, cookieOptions());
 
     return res.status(200).json({
         message:"user login successfully",
+        token,
         user :{
             id:user._id,
             username :user.username
@@ -107,10 +108,11 @@ export async function getMe(req,res){
 }
 
 export async function logout(req,res){
+    const isProd = process.env.NODE_ENV === "production";
     res.clearCookie("token", {
         httpOnly: true,
-        secure: true,
-        sameSite: "none"
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax"
     });
 
     return res.status(200).json({
