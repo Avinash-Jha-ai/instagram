@@ -60,9 +60,7 @@ export function AuthProvider({ children }) {
 
   async function updateProfile(formData) {
     try {
-      const res = await api.post('/profile/update', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/profile/update', formData);
       setProfile(res.data.profile);
       toast.success('Profile updated! ✨');
       return res.data;

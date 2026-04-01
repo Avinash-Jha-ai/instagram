@@ -59,15 +59,11 @@ const CreatePost = () => {
     
     try {
       if (type === 'post') {
-        await api.post('/posts', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post('/posts', formData);
         toast.success('Post created successfully!', { id });
         navigate('/');
       } else {
-        await api.post('/reels', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post('/reels', formData);
         toast.success('Reel created successfully!', { id });
         navigate('/reels');
       }

@@ -28,7 +28,12 @@ export async function register(req,res){
         expiresIn:"3d",
     });
 
-    res.cookie("token",token);
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 3 * 24 * 60 * 60 * 1000
+    });
 
     return res.status(200).json({
         message:"user registered successfully",
@@ -67,7 +72,12 @@ export async function login(req,res){
         expiresIn:"3d",
     })
 
-    res.cookie("token",token);
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 3 * 24 * 60 * 60 * 1000
+    });
 
     return res.status(200).json({
         message:"user login successfully",
@@ -97,7 +107,11 @@ export async function getMe(req,res){
 }
 
 export async function logout(req,res){
-    res.clearCookie("token");
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    });
 
     return res.status(200).json({
         message:"user logout successfully",

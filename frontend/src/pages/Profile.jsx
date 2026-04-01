@@ -41,7 +41,7 @@ const Profile = () => {
     return item.user._id?.toString?.() || item.user.id?.toString?.() || null;
   };
 
-  const fetchUserPosts = async () => {
+  async function fetchUserPosts() {
     try {
       const res = await api.get('/posts');
       const filtered = (res.data.posts || []).filter(
@@ -53,7 +53,7 @@ const Profile = () => {
     }
   };
 
-  const fetchUserReels = async () => {
+  async function fetchUserReels() {
     try {
       const res = await api.get('/reels');
       const filtered = (res.data.reels || []).filter(
