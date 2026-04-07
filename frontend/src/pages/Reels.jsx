@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiHeart, FiMessageCircle, FiSend, FiMusic } from 'react-icons/fi';
+import { FiHeart, FiMessageCircle, FiSend, FiMusic, FiX } from 'react-icons/fi';
 import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const Reels = () => {
@@ -67,8 +68,20 @@ const Reels = () => {
 
 // Extracted continuous scroll reel component
 const ReelCard = ({ reel }) => {
+  const { user } = useAuth();
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const [likesCount, setLikesCount] = useState(reel.likes?.length || 0);
+  const [isLiked, setIsLiked] = useState(reel.likes?.includes(user?.id));
+  const [sharesCount, setSharesCount] = useState(reel.sharesCount || 0);
+  
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState(reel.comments || []);
+  const [commentText, setCommentText] = useState('');
+
+  // We roughly assume follows based on user.following list if available, else keep generic state for demo
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -102,6 +115,64 @@ const ReelCard = ({ reel }) => {
     setIsPlaying(!isPlaying);
   };
 
+  const handleLike = async () => {
+    if (!user) return toast.error("Please login first");
+    try {
+      if (isLiked) {
+        setLikesCount(prev => prev - 1);
+        setIsLiked(false);
+        await api.delete(`/reels/${reel._id}/like`);
+      } else {
+        setLikesCount(prev => prev + 1);
+        setIsLiked(true);
+        await api.post(`/reels/${reel._id}/like`);
+      }
+    } catch (err) {
+      setIsLiked(!isLiked);
+      setLikesCount(isLiked ? likesCount + 1 : likesCount - 1);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!user) return toast.error("Please login first");
+    try {
+      await api.post(`/reels/${reel._id}/share`);
+      setSharesCount(prev => prev + 1);
+      toast.success('Reel shared!');
+    } catch (err) {
+      toast.error('Share failed');
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!user) return toast.error("Please login first");
+    if (!commentText.trim()) return;
+    try {
+      const res = await api.post(`/reels/${reel._id}/comments`, { text: commentText });
+      setComments(res.data.comments);
+      setCommentText('');
+    } catch (err) {
+      toast.error('Failed to add comment');
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!user) return toast.error("Please login first");
+    if (reel.user?._id === user.id) return;
+    try {
+      if (isFollowing) {
+        await api.delete(`/profile/follow/${reel.user._id}`);
+        setIsFollowing(false);
+      } else {
+        await api.post(`/profile/follow/${reel.user._id}`);
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      toast.error('Action failed');
+    }
+  };
+
   return (
     <div className="glass-panel" style={styles.reelContainer}>
       {/* Video Content */}
@@ -122,7 +193,14 @@ const ReelCard = ({ reel }) => {
                {reel.user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
             <h3 style={styles.username}>@{reel.user?.username}</h3>
-            <button style={styles.followBtn}>Follow</button>
+             {user && reel.user?._id !== user.id && (
+               <button 
+                 style={{...styles.followBtn, background: isFollowing ? 'rgba(255,255,255,0.2)' : 'transparent'}}
+                 onClick={handleFollow}
+               >
+                 {isFollowing ? 'Following' : 'Follow'}
+               </button>
+             )}
           </div>
           <p style={styles.title}>{reel.title}</p>
           <div style={styles.musicTrack}>
@@ -133,27 +211,65 @@ const ReelCard = ({ reel }) => {
 
         {/* Side Actions */}
         <div style={styles.sideActions}>
-          <div style={styles.actionItem}>
+          <div style={styles.actionItem} onClick={handleLike}>
             <div style={styles.actionBtn}>
-              <FiHeart size={28} />
+              <FiHeart size={28} fill={isLiked ? 'red' : 'none'} color={isLiked ? 'red' : 'white'} />
             </div>
-            <span style={styles.actionCount}>1.2K</span>
+            <span style={styles.actionCount}>{likesCount}</span>
           </div>
-          <div style={styles.actionItem}>
+          <div style={styles.actionItem} onClick={() => setShowComments(true)}>
             <div style={styles.actionBtn}>
               <FiMessageCircle size={28} />
             </div>
-            <span style={styles.actionCount}>342</span>
+            <span style={styles.actionCount}>{comments.length}</span>
           </div>
-          <div style={styles.actionItem}>
+          <div style={styles.actionItem} onClick={handleShare}>
             <div style={styles.actionBtn}>
               <FiSend size={28} />
             </div>
-            <span style={styles.actionCount}>Share</span>
+            <span style={styles.actionCount}>{sharesCount || 'Share'}</span>
           </div>
         </div>
       </div>
       
+      {/* Comments Drawer */}
+      <AnimatePresence>
+        {showComments && (
+          <motion.div 
+            style={styles.commentDrawer}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          >
+            <div style={styles.drawerHeader}>
+              <h4>Comments ({comments.length})</h4>
+              <FiX size={24} style={{cursor: 'pointer'}} onClick={() => setShowComments(false)} />
+            </div>
+            <div style={styles.drawerComments}>
+              {comments.length > 0 ? comments.map((c, i) => (
+                <div key={i} style={styles.drawerCommentItem}>
+                  <strong>{c.user?.username || 'User'}</strong>
+                  <p>{c.text}</p>
+                </div>
+              )) : (
+                <p style={{textAlign: 'center', color: 'gray', marginTop: '20px'}}>No comments yet.</p>
+              )}
+            </div>
+            <form style={styles.drawerForm} onSubmit={handleAddComment}>
+              <input 
+                type="text" 
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder="Add a comment..."
+                style={styles.drawerInput}
+              />
+              <button type="submit" style={styles.drawerPostBtn} disabled={!commentText.trim()}>Post</button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Add Marquee CSS animation dynamically */}
       <style>{`
         .music-icon { animation: spin 4s linear infinite; }
@@ -321,6 +437,58 @@ const styles = {
     color: 'var(--text-muted)',
     textAlign: 'center',
   },
+  commentDrawer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    height: '60%',
+    backgroundColor: 'var(--bg-card)',
+    borderRadius: '20px 20px 0 0',
+    display: 'flex',
+    flexDirection: 'column',
+    zIndex: 20,
+    borderTop: '1px solid rgba(255,255,255,0.1)'
+  },
+  drawerHeader: {
+    padding: '15px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+  },
+  drawerComments: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '15px',
+  },
+  drawerCommentItem: {
+    marginBottom: '15px',
+    fontSize: '0.9rem',
+    lineHeight: '1.4',
+  },
+  drawerForm: {
+    padding: '15px',
+    borderTop: '1px solid rgba(255,255,255,0.1)',
+    display: 'flex',
+    gap: '10px',
+  },
+  drawerInput: {
+    flex: 1,
+    background: 'rgba(255,255,255,0.1)',
+    border: 'none',
+    padding: '12px 15px',
+    borderRadius: '20px',
+    color: 'white',
+    outline: 'none',
+  },
+  drawerPostBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--primary)',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  }
 };
 
 export default Reels;
