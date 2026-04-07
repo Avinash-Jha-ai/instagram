@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { FiEdit3, FiGrid, FiFilm, FiBookmark, FiHeart, FiTrash2, FiPlayCircle } from 'react-icons/fi';
+import { useParams, useNavigate } from 'react-router-dom';
+import { FiEdit3, FiGrid, FiFilm, FiBookmark, FiHeart, FiTrash2, FiPlayCircle, FiUserPlus, FiUserMinus, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 
 const Profile = () => {
-  const { user, profile, updateProfile, fetchProfile } = useAuth();
+  const { user, profile: currentUserProfile, updateProfile, fetchProfile } = useAuth();
+  const { userId } = useParams();
+  const navigate = useNavigate();
+
+  const [viewingProfile, setViewingProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ name: '', bio: '' });
   const [file, setFile] = useState(null);
@@ -15,19 +20,43 @@ const Profile = () => {
   const [userPosts, setUserPosts] = useState([]);
   const [userReels, setUserReels] = useState([]);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  const [showListModal, setShowListModal] = useState(null); // 'followers' | 'following' | null
+  const [listData, setListData] = useState([]);
+  const [isLoadingList, setIsLoadingList] = useState(false);
+
+  const isCurrentUser = !userId || userId === user?.id?.toString() || userId === user?._id?.toString();
+  const activeProfile = isCurrentUser ? currentUserProfile : viewingProfile;
 
   useEffect(() => {
-    if (!user?.id) return;
-
-    fetchProfile().then((data) => {
-      if (data) {
-        setFormData({ name: data.name || '', bio: data.bio || '' });
+    const loadProfileData = async () => {
+      if (isCurrentUser) {
+        const data = await fetchProfile();
+        if (data) {
+           setFormData({ name: data.name || '', bio: data.bio || '' });
+        }
+      } else {
+        try {
+          const res = await api.get(`/profile/user/${userId}`);
+          setViewingProfile(res.data.profile);
+          const followers = res.data.profile?.user?.followers || [];
+          setIsFollowing(followers.some(f => {
+             const fId = f._id || f;
+             const myId = user?.id || user?._id;
+             return fId.toString() === myId?.toString()
+          }));
+        } catch (err) {
+          console.error(err);
+        }
       }
-    });
-    
-    fetchUserPosts();
-    fetchUserReels();
-  }, [user?.id]);
+    };
+    if (user) {
+        loadProfileData();
+        fetchUserPosts();
+        fetchUserReels();
+    }
+  }, [userId, isCurrentUser, user]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -41,11 +70,13 @@ const Profile = () => {
     return item.user._id?.toString?.() || item.user.id?.toString?.() || null;
   };
 
+  const targetId = isCurrentUser ? (user?.id || user?._id) : userId;
+
   async function fetchUserPosts() {
     try {
       const res = await api.get('/posts');
       const filtered = (res.data.posts || []).filter(
-        (p) => getOwnerId(p) === user?.id?.toString()
+        (p) => getOwnerId(p) === targetId?.toString()
       );
       setUserPosts(filtered);
     } catch (err) {
@@ -57,11 +88,57 @@ const Profile = () => {
     try {
       const res = await api.get('/reels');
       const filtered = (res.data.reels || []).filter(
-        (r) => getOwnerId(r) === user?.id?.toString()
+        (r) => getOwnerId(r) === targetId?.toString()
       );
       setUserReels(filtered);
     } catch (err) {
        console.log(err);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+     try {
+       if (isFollowing) {
+          await api.delete(`/profile/follow/${userId}`);
+          setIsFollowing(false);
+          setViewingProfile(prev => ({
+             ...prev,
+             user: {
+                 ...prev.user,
+                 followers: prev.user.followers.filter(f => (f._id || f).toString() !== (user.id || user._id).toString())
+             }
+          }));
+          toast.success("Unfollowed user");
+       } else {
+          await api.post(`/profile/follow/${userId}`);
+          setIsFollowing(true);
+          setViewingProfile(prev => ({
+             ...prev,
+             user: {
+                 ...prev.user,
+                 followers: [...(prev.user.followers || []), user.id || user._id]
+             }
+          }));
+          toast.success("Following user");
+       }
+       // refresh our own profile slightly
+       fetchProfile();
+     } catch (err) {
+         toast.error(err.response?.data?.message || "Failed to follow/unfollow");
+     }
+  };
+
+  const openListModal = async (type) => {
+    setShowListModal(type);
+    setIsLoadingList(true);
+    setListData([]);
+    try {
+       const res = await api.get(`/profile/${type}/${targetId}`);
+       setListData(res.data[type] || []);
+    } catch {
+       toast.error(`Failed to load ${type}`);
+    } finally {
+       setIsLoadingList(false);
     }
   };
 
@@ -119,9 +196,13 @@ const Profile = () => {
   };
 
   // Safe fallback for profile data
-  const displayName = profile?.name || user?.username || 'User';
-  const displayBio = profile?.bio || 'No bio yet. Click Edit Profile to add one!';
-  const displayAvatar = preview || profile?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=random`;
+  const displayName = activeProfile?.name || activeProfile?.user?.username || 'User';
+  const displayBio = activeProfile?.bio || (isCurrentUser ? 'No bio yet. Click Edit Profile to add one!' : '');
+  const displayUsername = activeProfile?.user?.username || 'User';
+  const displayAvatar = (isCurrentUser && preview) ? preview : (activeProfile?.avatar || `https://ui-avatars.com/api/?name=${displayUsername}&background=random`);
+
+  const followersCount = activeProfile?.user?.followers?.length || 0;
+  const followingCount = activeProfile?.user?.following?.length || 0;
 
   return (
     <motion.div
@@ -148,23 +229,37 @@ const Profile = () => {
 
           <div style={{ ...styles.infoContainer, ...(isMobile ? styles.infoContainerMobile : {}) }}>
             <div style={{ ...styles.nameHeader, ...(isMobile ? styles.nameHeaderMobile : {}) }}>
-              <h1 style={{ ...styles.username, ...(isMobile ? styles.usernameMobile : {}) }}>{user?.username}</h1>
-              {!isEditing ? (
-                <button className="btn-outline" style={styles.editBtn} onClick={() => setIsEditing(true)}>
-                  Edit Profile
-                </button>
+              <h1 style={{ ...styles.username, ...(isMobile ? styles.usernameMobile : {}) }}>{displayUsername}</h1>
+              {isCurrentUser ? (
+                !isEditing ? (
+                  <button className="btn-outline" style={styles.editBtn} onClick={() => setIsEditing(true)}>
+                    Edit Profile
+                  </button>
+                ) : (
+                  <div style={styles.editActions}>
+                    <button className="btn-primary" style={styles.saveBtn} onClick={handleSaveProfile}>Save</button>
+                    <button className="btn-outline" onClick={() => setIsEditing(false)}>Cancel</button>
+                  </div>
+                )
               ) : (
-                <div style={styles.editActions}>
-                  <button className="btn-primary" style={styles.saveBtn} onClick={handleSaveProfile}>Save</button>
-                  <button className="btn-outline" onClick={() => setIsEditing(false)}>Cancel</button>
-                </div>
+                  <button 
+                    className={isFollowing ? "btn-outline" : "btn-primary"} 
+                    style={{...styles.editBtn, display: 'flex', alignItems: 'center', gap: '8px'}} 
+                    onClick={handleFollowToggle}
+                  >
+                    {isFollowing ? <><FiUserMinus /> Unfollow</> : <><FiUserPlus /> Follow</>}
+                  </button>
               )}
             </div>
 
             <div style={{ ...styles.stats, ...(isMobile ? styles.statsMobile : {}) }}>
               <div style={styles.statItem}><strong>{userPosts.length}</strong> posts</div>
-              <div style={styles.statItem}><strong>1.2K</strong> followers</div>
-              <div style={styles.statItem}><strong>845</strong> following</div>
+              <div style={{...styles.statItem, cursor: 'pointer'}} onClick={() => openListModal('followers')}>
+                 <strong>{followersCount}</strong> followers
+              </div>
+              <div style={{...styles.statItem, cursor: 'pointer'}} onClick={() => openListModal('following')}>
+                 <strong>{followingCount}</strong> following
+              </div>
             </div>
 
             <div style={styles.bioSection}>
@@ -228,13 +323,15 @@ const Profile = () => {
                <div style={styles.gridOverlay}>
                   <span><FiHeart /> 120</span>
                </div>
-               <button 
-                 onClick={(e) => handleDeletePost(post._id, e)} 
-                 style={styles.deleteBtn}
-                 title="Delete Post"
-               >
-                 <FiTrash2 size={16} />
-               </button>
+               {isCurrentUser && (
+                 <button 
+                   onClick={(e) => handleDeletePost(post._id, e)} 
+                   style={styles.deleteBtn}
+                   title="Delete Post"
+                 >
+                   <FiTrash2 size={16} />
+                 </button>
+               )}
             </motion.div>
            ))
         ) : activeTab === 'reels' && userReels.length > 0 ? (
@@ -244,13 +341,15 @@ const Profile = () => {
                <div style={styles.gridOverlay}>
                   <span style={{textAlign: 'center'}}><FiPlayCircle size={24} /> <br/> Reel</span>
                </div>
-               <button 
-                 onClick={(e) => handleDeleteReel(reel._id, e)} 
-                 style={styles.deleteBtn}
-                 title="Delete Reel"
-               >
-                 <FiTrash2 size={16} />
-               </button>
+               {isCurrentUser && (
+                 <button 
+                   onClick={(e) => handleDeleteReel(reel._id, e)} 
+                   style={styles.deleteBtn}
+                   title="Delete Reel"
+                 >
+                   <FiTrash2 size={16} />
+                 </button>
+               )}
             </motion.div>
            ))
         ) : (
@@ -507,6 +606,58 @@ const styles = {
     alignItems: 'center',
     padding: '50px',
     color: 'var(--text-muted)',
+  },
+  modalBackdrop: {
+    position: 'fixed',
+    top: 0, left: 0, width: '100vw', height: '100vh',
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    background: 'var(--bg-card)',
+    width: '90%',
+    maxWidth: '400px',
+    borderRadius: '16px',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+  },
+  closeBtn: {
+    background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer',
+  },
+  modalBody: {
+    padding: '10px 0',
+    overflowY: 'auto',
+    flex: 1,
+  },
+  modalUserItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 20px',
+    gap: '15px',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  },
+  modalUserAvatar: {
+    width: '40px', height: '40px', borderRadius: '50%',
+    background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+    display: 'flex', justifyContent: 'center', alignItems: 'center',
+    fontWeight: 'bold', fontSize: '1.2rem',
+  },
+  modalUsername: {
+    fontWeight: '600',
+    fontSize: '1rem',
   }
 };
 

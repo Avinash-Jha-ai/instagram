@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiHeart, FiMessageCircle, FiSend, FiMoreVertical } from 'react-icons/fi';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const PostCard = ({ post }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
   const [isLiked, setIsLiked] = useState(post.likes?.includes(user?.id));
   const [showComments, setShowComments] = useState(false);
@@ -65,7 +67,10 @@ const PostCard = ({ post }) => {
     >
       {/* Post Header */}
       <div style={styles.header}>
-        <div style={styles.userInfo}>
+        <div 
+          style={{...styles.userInfo, cursor: 'pointer'}} 
+          onClick={() => navigate(`/profile/${post.user?._id || post.user?.id}`)}
+        >
           <div style={styles.avatar}>
             {post.user?.username?.charAt(0).toUpperCase() || 'U'}
           </div>

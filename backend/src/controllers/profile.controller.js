@@ -54,11 +54,13 @@ export async function updateProfile(req, res) {
   }
 }
 export async function getProfile(req,res){
-    const profile =await profileModel.findOne({user:req.user.id}).populate("user","username");
+    let profile =await profileModel.findOne({user:req.user.id}).populate("user","username followers following");
 
     if(!profile){
-        return res.status(404).json({
-            message:"profile not found",
+        let userObj = await userModel.findById(req.user.id).select("username followers following");
+        return res.status(200).json({
+            message: "profile not found, returning empty",
+            profile: { user: userObj },
         })
     }
 
@@ -67,6 +69,23 @@ export async function getProfile(req,res){
         profile,
     })
 
+}
+
+export async function getProfileByUserId(req,res){
+    const { userId } = req.params;
+    let profile = await profileModel.findOne({user: userId}).populate("user","username followers following");
+    
+    if(!profile){
+         profile = { user: await userModel.findById(userId).select("username followers following") };
+         if (!profile.user) {
+             return res.status(404).json({ message: "User not found" });
+         }
+    }
+
+    return res.status(200).json({
+        message:"profile fetched successfully",
+        profile,
+    })
 }
 
 export async function followUser(req, res) {

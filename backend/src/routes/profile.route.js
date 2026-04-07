@@ -2,6 +2,7 @@ import {Router} from 'express';
 import {
   updateProfile,
   getProfile,
+  getProfileByUserId,
   followUser,
   unfollowUser,
   getFollowers,
@@ -19,6 +20,7 @@ profileRouter.post(
   updateProfile
 );
 profileRouter.get("/me",protect, getProfile);
+profileRouter.get("/user/:userId", protect, getProfileByUserId);
 profileRouter.post("/follow/:userId", protect, followUser);
 profileRouter.delete("/follow/:userId", protect, unfollowUser);
 profileRouter.get("/followers/:userId", protect, getFollowers);

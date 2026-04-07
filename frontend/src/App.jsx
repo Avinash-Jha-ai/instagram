@@ -32,6 +32,7 @@ function App() {
           <Route path="/reels" element={<Reels />} />
           <Route path="/create" element={<CreatePost />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
         </Route>
         
         {/* Catch all */}
